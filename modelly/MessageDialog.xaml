@@ -1,0 +1,47 @@
+﻿<Window x:Class="modelly.MessageDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Message" Height="180" Width="420" WindowStartupLocation="CenterOwner" ResizeMode="CanResizeWithGrip" Icon="favicon.ico">
+    <Grid>
+        <Grid  >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="50"/>
+            </Grid.RowDefinitions>
+            <Grid Background="#2A3A56" Height="3" VerticalAlignment="Top"></Grid>
+            <Label Name="mLblMessage" Grid.Row="0" Width="400" Margin="10"></Label>
+            <TextBlock Name="LblMessage" Grid.Row="0" Width="400" Margin="10"/>
+
+            <StackPanel Grid.Row="1" ScrollViewer.CanContentScroll="True" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <Button Name="BtnLinkTrace" Margin="10" Content=" View stack trace +" Cursor="Hand" Click="Button_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <TextBlock TextDecorations="Underline">
+                <ContentPresenter />
+                            </TextBlock>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Foreground" Value="Blue" />
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="true">
+                                    <Setter Property="Foreground" Value="Red" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <ScrollViewer Name="ScvStackTrace" MaxHeight="150" Padding="0,10" Background="#2A3A56" Margin="10" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <TextBlock x:Name="TbkStackTrace" TextWrapping="Wrap"                       
+               TextDecorations="None" Padding="10" Background="WhiteSmoke">
+                            No stack trace to show.
+                    </TextBlock>
+                </ScrollViewer>
+            </StackPanel>
+
+            <Button Name="BtnOk" Grid.Row="2" Content="Ok" Width="75" Height="25" Click="BtnOk_Click"></Button>
+        </Grid>
+    </Grid>
+</Window>

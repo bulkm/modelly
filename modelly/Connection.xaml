@@ -1,0 +1,49 @@
+﻿<Window x:Class="modelly.Connection"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Connection - Modelly" Height="300" Width="500" WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Loaded="Window_Loaded" Icon="favicon.ico" >
+    <Grid>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.75*" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="0.5*" />
+                <RowDefinition Height="0.8*" />
+                <RowDefinition Height="0.8*" />
+                <RowDefinition Height="0.4*" />
+                <RowDefinition Height="0.8*" />
+                <RowDefinition Height="0.8*" />
+                <RowDefinition Height="1*" />
+                <RowDefinition Height="0.5*" />
+            </Grid.RowDefinitions>
+            <Grid Background="#2A3A56" Grid.ColumnSpan="2" Height="3" VerticalAlignment="Top"></Grid>
+
+            <Label Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Center">Server type:</Label>
+            <Label Name="lblServerName" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Center">Server name:</Label>
+            <Label Grid.Row="4" HorizontalAlignment="Right" VerticalAlignment="Center">Login:</Label>
+            <Label Grid.Row="5" HorizontalAlignment="Right" VerticalAlignment="Center">Password:</Label>
+
+            <CheckBox Name="ckxTustedConnection" Grid.Row="3" Grid.Column="1" Margin="10 0" Checked="ckxTustedConnection_Checked" Click="ckxTustedConnection_Click">Trusted Connection</CheckBox>
+            <TextBox Name="tbxUserLogin" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Width="200" FontFamily="Consolas" FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10 0" TextAlignment="Left" Padding="3" TextWrapping="NoWrap"></TextBox>
+            <PasswordBox  Name="tbxUserPassword" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Width="200" FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10 0" Padding="3"></PasswordBox>
+
+            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"  Orientation="Horizontal">
+                <ComboBox Name="cbxServerType" Width="200" FontSize="13" Height="25" HorizontalAlignment="Left" Padding="5,2" VerticalContentAlignment="Center" Margin="10,0" SelectionChanged="cbxServerType_SelectionChanged"/>
+                <CheckBox Name="ckxIsDotNetCore" Margin="10">Is Dot Net Core</CheckBox>
+            </StackPanel>
+            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                <TextBox Name="tbxCnxString" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="1" Width="200" FontFamily="Consolas" FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10 0" TextAlignment="Left" Padding="3" TextWrapping="NoWrap"></TextBox>
+                <Label Name="lblServerPort" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">port:</Label>
+                <TextBox Name="tbxServerPort" Width="40" FontFamily="Consolas" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10 0" TextAlignment="Left" Padding="3" TextWrapping="NoWrap"></TextBox>
+            </StackPanel>
+            <StackPanel Grid.Row="6" Grid.Column="1" FlowDirection="LeftToRight" Orientation="Horizontal" HorizontalAlignment="Left" Margin="90,0,0,0">
+                <Button Name="Connect" VerticalAlignment="Center" HorizontalAlignment="Left" Width="100" Padding="10,5" Margin="10,0" Click="Connect_Click">Connect</Button>
+                <Button Name="Cancel" VerticalAlignment="Center" HorizontalAlignment="Right" Width="100" Padding="10,5" Click="Cancel_Click">Cancel</Button>
+            </StackPanel>
+            <Label Name="vers" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#555" Padding="15,0" FontFamily="Consolas" FontSize="11">Modelly 1.0.1</Label>
+        </Grid>
+    </Grid>
+</Window>

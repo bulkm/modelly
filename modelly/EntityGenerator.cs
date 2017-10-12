@@ -166,8 +166,6 @@ using System.Text;
                             corpus += "\n\t\tpublic Nullable<DateTime> " + ClassAttributes[i] + @" { get; set; }";
                             break;
                         case "tinyint":
-                            corpus += "\n\t\tpublic Nullable<byte> " + ClassAttributes[i] + @" { get; set; }";
-                            break;
                         case "bool":
                         case "bit":
                             corpus += "\n\t\tpublic Nullable<bool> " + ClassAttributes[i] + @" { get; set; }";
@@ -220,8 +218,6 @@ using System.Text;
                             corpus += "\n\t\tpublic DateTime " + ClassAttributes[i] + @" { get; set; }";
                             break;
                         case "tinyint":
-                            corpus += "\n\t\tpublic byte " + ClassAttributes[i] + @" { get; set; }";
-                            break;
                         case "bool":
                         case "bit":
                             corpus += "\n\t\tpublic bool " + ClassAttributes[i] + @" { get; set; }";
@@ -306,8 +302,6 @@ using System.Text;
                             corpus += "\t\t\t" + ClassAttributes[i] + " = (dr[\"" + ClassAttributes[i] + "\"] == System.DBNull.Value) ? (TimeSpan?)null : TimeSpan.Parse(dr[\"" + ClassAttributes[i] + "\"].ToString());\n";
                             break;
                         case "tinyint":
-                            corpus += "\t\t\t" + ClassAttributes[i] + " = (dr[\"" + ClassAttributes[i] + "\"] == System.DBNull.Value) ? (byte?)null : Convert.ToByte(dr[\"" + ClassAttributes[i] + "\"]);\n";
-                            break;
                         case "bool":
                         case "bit":
                         case "boolean":
@@ -379,8 +373,6 @@ using System.Text;
                             corpus += "\t\t\t" + ClassAttributes[i] + @" = Convert.ToString(dr[""" + ClassAttributes[i] + "\"]);\n";
                             break;
                         case "tinyint":
-                            corpus += "\t\t\t" + ClassAttributes[i] + @" = Convert.ToByte(dr[""" + ClassAttributes[i] + "\"]);\n";
-                            break;
                         case "bit":
                         case "bool":
                         case "boolean":
@@ -777,8 +769,6 @@ using System.Text;
                                     parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -967,8 +957,6 @@ using System.Text;
                                     valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -1097,8 +1085,6 @@ using System.Text;
                                     parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -1241,8 +1227,6 @@ using System.Text;
                                     valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":

@@ -166,8 +166,6 @@ using System.Text;
                             corpus += "\n\t\tpublic Nullable<DateTime> " + ClassAttributes[i] + @" { get; set; }";
                             break;
                         case "tinyint":
-                            corpus += "\n\t\tpublic Nullable<byte> " + ClassAttributes[i] + @" { get; set; }";
-                            break;
                         case "bool":
                         case "bit":
                             corpus += "\n\t\tpublic Nullable<bool> " + ClassAttributes[i] + @" { get; set; }";
@@ -220,8 +218,6 @@ using System.Text;
                             corpus += "\n\t\tpublic DateTime " + ClassAttributes[i] + @" { get; set; }";
                             break;
                         case "tinyint":
-                            corpus += "\n\t\tpublic byte " + ClassAttributes[i] + @" { get; set; }";
-                            break;
                         case "bool":
                         case "bit":
                             corpus += "\n\t\tpublic bool " + ClassAttributes[i] + @" { get; set; }";
@@ -306,8 +302,6 @@ using System.Text;
                             corpus += "\t\t\t" + ClassAttributes[i] + " = (dr[\"" + ClassAttributes[i] + "\"] == System.DBNull.Value) ? (TimeSpan?)null : TimeSpan.Parse(dr[\"" + ClassAttributes[i] + "\"].ToString());\n";
                             break;
                         case "tinyint":
-                            corpus += "\t\t\t" + ClassAttributes[i] + " = (dr[\"" + ClassAttributes[i] + "\"] == System.DBNull.Value) ? (byte?)null : Convert.ToByte(dr[\"" + ClassAttributes[i] + "\"]);\n";
-                            break;
                         case "bool":
                         case "bit":
                         case "boolean":
@@ -379,8 +373,6 @@ using System.Text;
                             corpus += "\t\t\t" + ClassAttributes[i] + @" = Convert.ToString(dr[""" + ClassAttributes[i] + "\"]);\n";
                             break;
                         case "tinyint":
-                            corpus += "\t\t\t" + ClassAttributes[i] + @" = Convert.ToByte(dr[""" + ClassAttributes[i] + "\"]);\n";
-                            break;
                         case "bit":
                         case "bool":
                         case "boolean":
@@ -441,6 +433,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 " + usingType;
             string IdxType = "int";
             if (ClassAttributesType[IdIdx].ToLower() == "bigint") { IdxType = "long"; } else { IdxType = ClassAttributesType[IdIdx]; }
@@ -577,7 +570,6 @@ using System.Text;
                     throw Ex;
                 }
             }
-
             public static List<" + ClassName + @"> Get()
             {
                 try
@@ -632,20 +624,20 @@ using System.Text;
                 {
                     try
                     {
-                        int MAX_Query_Number = " + CfgNameSpace + @".Config.MAX_BDMS_PARAMS_NUM ; 
+                        int MAX_QUERY_SIZE = " + CfgNameSpace + @".Config.MAX_BDMS_PARAMS_NUM ; 
                         List<" + ClassName + @"> Results = null;
-                        if(LIds.Count <= MAX_Query_Number)
+                        if(LIds.Count <= MAX_QUERY_SIZE)
                         {
                             Results = get(LIds);
                         }else
                         {
-                            int batchNumber = LIds.Count / MAX_Query_Number;
+                            int batchSize = LIds.Count / MAX_QUERY_SIZE;
                             Results = new List<" + ClassName + @">();
-                            for(int i=0; i<batchNumber; i++)
+                            for(int i=0; i<batchSize; i++)
                             {
-                                Results.AddRange(get(LIds.GetRange(i * MAX_Query_Number, MAX_Query_Number)));
+                                Results.AddRange(get(LIds.GetRange(i * MAX_QUERY_SIZE, MAX_QUERY_SIZE)));
                             }
-                            Results.AddRange(get(LIds.GetRange(batchNumber * MAX_Query_Number, LIds.Count-batchNumber * MAX_Query_Number)));
+                            Results.AddRange(get(LIds.GetRange(batchSize * MAX_QUERY_SIZE, LIds.Count-batchSize * MAX_QUERY_SIZE)));
                         }
                         return Results;
                     }
@@ -718,7 +710,199 @@ using System.Text;
             }";
             #endregion Gets
 
-            return get_methods;
+            #region Gets_async
+
+            string get_methods_async = @"public static async Task<" + ClassName + @"> GetAsync(" + IdxType + @" " + ClassAttributes[IdIdx] + @")
+            {
+                try
+                {
+                    " + DataAdapterType + @" SelectAdapter = new " + DataAdapterType + @"();
+                    DataTable dt = new DataTable();
+                    using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                    {
+                        cnn.Open();
+                        string query = ""SELECT * FROM " + ClassName + @" WHERE " + ClassAttributes[IdIdx] + @"=@Id"";
+                        " + CommandType + " cmd = new " + CommandType + @"(query, cnn);
+                        cmd.Parameters.AddWithValue(""Id"", " + ClassAttributes[IdIdx] + @");";
+            if (MyDBType == DatabaseType.SqlServer && IsDotNetCore)
+            {
+                get_methods_async += @" 
+
+                        List<" + ClassName + @"> Lt = new List<" + ClassName + @">();
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            Lt = Helpers.GetListFromDataTable(reader);
+                        }
+                    }
+                    return Lt[0];";
+            }
+            else
+            {
+                get_methods_async += @" 
+
+                        SelectAdapter = new " + DataAdapterType + @"(cmd);
+                        await SelectAdapter.FillAsync(dt);
+
+                    }
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        return new " + ClassName + @"(dt.Rows[0]);
+                    }
+                    else
+                    {
+                        return null;
+                    }";
+            }
+
+            get_methods_async += @"
+                }
+                catch(Exception Ex)
+                {
+                    throw Ex;
+                }
+            }
+            public static async Task<List<" + ClassName + @">> GetAsync()
+            {
+                try
+                {         
+                    " + DataAdapterType + @" SelectAdapter = new " + DataAdapterType + @"();  
+                    DataTable dt = new DataTable();     
+                    using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                    {
+                        cnn.Open();
+                        string query = ""SELECT * FROM " + ClassName + @""";
+                        " + CommandType + " cmd = new " + CommandType + @"(query, cnn);";
+            if (MyDBType == DatabaseType.SqlServer && IsDotNetCore)
+            {
+                get_methods_async += @" 
+
+                        List<" + ClassName + @"> Lt = new List<" + ClassName + @">();
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            Lt = Helpers.GetListFromDataTable(reader);
+                        }
+                    }
+                    return Lt;";
+            }
+            else
+            {
+                get_methods_async += @" 
+
+                        SelectAdapter = new " + DataAdapterType + @"(cmd);
+                        await SelectAdapter.FillAsync(dt);
+                    }
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        return Helpers.GetListFromDataTable(dt);
+                    }
+                    else
+                    {
+                        return new List<" + ClassName + @">();
+                    }";
+            }
+
+            get_methods_async += @"
+                }
+                catch(Exception Ex)
+                {
+                    throw Ex;
+                }
+            }
+            public static async Task<List<" + ClassName + @">> GetAsync(List<" + IdxType + @"> LIds)
+            {
+                if(LIds != null && LIds.Count > 0)
+                {
+                    try
+                    {
+                        int MAX_QUERY_SIZE = " + CfgNameSpace + @".Config.MAX_BDMS_PARAMS_NUM ; 
+                        List<" + ClassName + @"> Results = null;
+                        if(LIds.Count <= MAX_QUERY_SIZE)
+                        {
+                            Results = await getAsync(LIds);
+                        }else
+                        {
+                            int batchSize = LIds.Count / MAX_QUERY_SIZE;
+                            Results = new List<" + ClassName + @">();
+                            for(int i=0; i<batchSize; i++)
+                            {
+                                Results.AddRange(await getAsync(LIds.GetRange(i * MAX_QUERY_SIZE, MAX_QUERY_SIZE)));
+                            }
+                            Results.AddRange(await getAsync(LIds.GetRange(batchSize * MAX_QUERY_SIZE, LIds.Count-batchSize * MAX_QUERY_SIZE)));
+                        }
+                        return Results;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+                return new List<" + ClassName + @">();
+            }
+            private static async Task<List<" + ClassName + @">> getAsync(List<" + IdxType + @"> LIds)
+            {
+                if(LIds != null && LIds.Count > 0)
+                {
+                    try
+                    {
+                        " + DataAdapterType + @" SelectAdapter = new " + DataAdapterType + @"();
+                        DataTable dt = new DataTable();
+                        using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                        {
+                            cnn.Open();
+                            " + CommandType + " cmd = new " + CommandType + @"();
+                            cmd.Connection = cnn;
+
+                            string queryIds = string.Empty;
+                            for(int i=0; i<LIds.Count; i++)
+                            {
+                                queryIds += ""@Id""+i+"","";
+                                cmd.Parameters.AddWithValue(""Id"" + i, LIds[i]);
+                            }
+                            queryIds = queryIds.TrimEnd(',');
+
+                            cmd.CommandText = ""SELECT * FROM " + ClassName + @" WHERE " + ClassAttributes[IdIdx] + @" IN (""+ queryIds +"")"";                    
+                        ";
+            if (MyDBType == DatabaseType.SqlServer && IsDotNetCore)
+            {
+                get_methods_async += @" 
+                            List<" + ClassName + @"> Lt = new List<" + ClassName + @">();
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                Lt = Helpers.GetListFromDataTable(reader);
+                            }
+                        }
+                    return Lt;";
+            }
+            else
+            {
+                get_methods_async += @"SelectAdapter = new " + DataAdapterType + @"(cmd);
+                            await SelectAdapter.FillAsync(dt);
+                        }
+
+                        if (dt.Rows.Count > 0)
+                        {
+                            return Helpers.GetListFromDataTable(dt);
+                        }
+                        else
+                        {
+                            return new List<" + ClassName + @">();
+                        }";
+            }
+
+            get_methods_async += @"
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+                return new List<" + ClassName + @">();
+            }";
+            #endregion Gets
+
+            return get_methods +"\n\t\t\t"+ get_methods_async;
         }
         static string getAddMethods(List<string> ClassAttributesNullable, List<string> ClassAttributesType, string ClassName, List<string> ClassAttributes, string IdxType, int IdIdx, string DataAdapterType, string ConnectionType, string CommandType, string CfgNameSpace, bool IsDotNetCore, DatabaseType MyDBType)
         {
@@ -777,8 +961,6 @@ using System.Text;
                                     parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -893,13 +1075,14 @@ using System.Text;
                             Results = add(Lt);
                         }else
                         {
-                            int batchNumber = Lt.Count / MAX_Params_Number;
-                            for(int i=0; i<batchNumber; i++)
+                            int batchSize = Lt.Count / MAX_Params_Number;
+                            for(int i=0; i<batchSize; i++)
                             {
                                 Results += add(Lt.GetRange(i * MAX_Params_Number, MAX_Params_Number));
                             }
-                            Results += add(Lt.GetRange(batchNumber * MAX_Params_Number,Lt.Count-batchNumber * MAX_Params_Number));
+                            Results += add(Lt.GetRange(batchSize * MAX_Params_Number,Lt.Count-batchSize * MAX_Params_Number));
                         }
+                        return Results;
                     }
                     catch(Exception Ex)
                     {
@@ -967,8 +1150,6 @@ using System.Text;
                                     valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -1033,7 +1214,315 @@ using System.Text;
             }";
             #endregion Adds
 
-            return add_methods;
+            #region Adds_async
+            if (ClassAttributesType == null || ClassAttributesType.Count <= 1) { return string.Empty; } // not enough attributes to add methods
+
+            string add_methods_async = @"public static async Task<int> AddAsync(" + ClassName + @" T)
+            {
+                try
+                {
+                    int InsertedID = -1;
+                    using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                    {
+                        cnn.Open();
+                        string query = ""INSERT INTO " + ClassName + @"";
+            atts = "";
+            vals = "";
+            parms = "";
+            if (ClassAttributes.Count > 1)
+            {
+                for (int i = 0; i < ClassAttributes.Count; i++)
+                {
+                    if (i != IdIdx)
+                    {
+                        atts += ClassAttributes[i] + ",";
+                        vals += "@" + ClassAttributes[i] + ",";
+
+                        if (ClassAttributesNullable[i].ToLower() == "yes")
+                        {
+                            switch (ClassAttributesType[i].ToLower())
+                            {
+                                case "int":
+                                case "smallint":
+                                case "mediumint":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "bigint":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "real":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "decimal":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "double":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "float":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "datetime2":
+                                case "datetime":
+                                case "date":
+                                case "time":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "tinyint":
+                                case "bool":
+                                case "bit":
+                                case "boolean":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "string":
+                                case "text":
+                                case "tinytext":
+                                case "ntext":
+                                case "longtext":
+                                case "mediumtext":
+                                case "uniqueidentifier":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "char":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "enum":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (enum" + ClassAttributes[i] + "?)null  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "blob":
+                                case "longblob":
+                                case "binary":
+                                case "varbinary":
+                                    parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? null  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                default:
+                                    System.Windows.MessageBox.Show("Unsupported DB type, nullable : " + ClassAttributesType[i]);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            parms += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + ");";
+                        }
+                    }
+                }
+                if (atts != string.Empty) { atts = atts.Substring(0, atts.Length - 1); }
+                if (vals != string.Empty) { vals = vals.Substring(0, vals.Length - 1); }
+            }
+
+            add_methods_async += "(" + atts + @")  VALUES (" + vals + @")"";
+
+                        " + CommandType + " cmd = new " + CommandType + "(query, cnn);"
+
+            + parms + @"
+
+                        InsertedID = await cmd.ExecuteNonQueryAsync();
+                ";
+            #region return LastInserted ID ** FOR INTEGER IDS ONLY **
+            if (ClassAttributesType[IdIdx].ToLower() == "int")
+            {
+                add_methods_async += @"
+                    if (InsertedID > 0)
+                    {";
+                switch (MyDBType)
+                {
+
+                    case DatabaseType.MySql:
+                        {
+                            add_methods_async += @"
+                        query = ""SELECT last_insert_id()"";";
+                            break;
+                        }
+                    case DatabaseType.SqlServer:
+                        {
+                            add_methods_async += @"query = ""SELECT " + ClassAttributes[IdIdx] + @" FROM " + ClassName + @" WHERE Id = @@IDENTITY"";";
+                            break;
+                        }
+                }
+
+                add_methods_async += @"
+                        cmd = new " + CommandType + @"(query, cnn);
+                        object _InsertedID = await cmd.ExecuteScalarAsync();
+
+                        if (_InsertedID != null)
+                        {
+                            InsertedID = Convert.ToInt32(_InsertedID.ToString());
+                        }
+                        else
+                        {
+                            InsertedID = -1;
+                        }
+                    }
+                    else
+                    {
+                        InsertedID = -1;
+                    }";
+            }
+            #endregion
+
+            add_methods_async += @"
+                    }
+
+                    return InsertedID;
+                }
+                catch(Exception Ex)
+                {
+                    throw Ex;
+                }
+            }
+            public static async Task<int> AddAsync(List<" + ClassName + @"> Lt)
+            {
+                if (Lt != null && Lt.Count > 0)
+                {
+                    try
+                    {
+                        int MAX_Params_Number = " + CfgNameSpace + @".Config.MAX_BDMS_PARAMS_NUM / " + ClassAttributes.Count + @"; // Nb params per query
+                        int Results=0;
+                        if(Lt.Count <= MAX_Params_Number)
+                        {
+                            Results = await addAsync(Lt);
+                        }else
+                        {
+                            int batchSize = Lt.Count / MAX_Params_Number;
+                            for(int i=0; i<batchSize; i++)
+                            {
+                                Results += await addAsync(Lt.GetRange(i * MAX_Params_Number, MAX_Params_Number));
+                            }
+                            Results += await addAsync(Lt.GetRange(batchSize * MAX_Params_Number,Lt.Count-batchSize * MAX_Params_Number));
+                        }
+                        return Results;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+
+                return -1;
+            }
+            private static async Task<int> addAsync(List<" + ClassName + @"> Lt)
+            {
+                if (Lt != null && Lt.Count > 0)
+                {
+                    try
+                    {
+                        int r = -1;
+                        using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                        {
+                            cnn.Open();
+                            string query = """";
+                            " + CommandType + " cmd = new " + CommandType + @"(query, cnn);
+
+                            int i = 0;
+                            foreach (" + ClassName + @" t in Lt)
+                            {
+                                i++;
+                                query += "" INSERT INTO " + ClassName + "(" + atts + ") VALUES( \"\n";
+            attsmu = "";
+            valsmu = "";
+            if (ClassAttributes.Count > 1)
+            {
+                for (int i = 0; i < ClassAttributes.Count; i++)
+                {
+                    if (i != IdIdx)
+                    {
+                        attsmu += "\n\t\t\t\t\t\t\t\t\t+ \"@" + ClassAttributes[i] + "\"+ i +\",\"";
+                        if (ClassAttributesNullable[i].ToLower() == "yes")
+                        {
+                            switch (ClassAttributesType[i].ToLower())
+                            {
+                                case "int":
+                                case "smallint":
+                                case "mediumint":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "bigint":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "real":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "decimal":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "double":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "float":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "datetime2":
+                                case "datetime":
+                                case "date":
+                                case "time":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "tinyint":
+                                case "bool":
+                                case "bit":
+                                case "boolean":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "string":
+                                case "text":
+                                case "tinytext":
+                                case "ntext":
+                                case "longtext":
+                                case "mediumtext":
+                                case "uniqueidentifier":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "char":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "enum":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (enum" + ClassAttributes[i] + "?)null  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "blob":
+                                case "longblob":
+                                case "binary":
+                                case "varbinary":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? null  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                default:
+                                    System.Windows.MessageBox.Show("Unsupported DB type, nullable : " + ClassAttributesType[i]);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + ");";
+                        }
+                    }
+                }
+            }
+
+            add_methods_async += attsmu.Substring(0, attsmu.Length - 4) + @"
+                                     + ""); "";
+
+                                    ";
+            add_methods_async += valsmu +
+    @"
+                            }
+
+                            cmd.CommandText = query;
+
+                            r = await cmd.ExecuteNonQueryAsync();
+                        }
+
+                        return r;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+
+                return -1;
+            }";
+            #endregion Adds
+
+            return add_methods+ "\n\t\t\t"+ add_methods_async;
         }
         static string getEditMethods(List<string> ClassAttributesNullable, List<string> ClassAttributesType, string ClassName, List<string> ClassAttributes, string IdxType, int IdIdx, string DataAdapterType, string ConnectionType, string CommandType, string CfgNameSpace, bool IsDotNetCore, DatabaseType MyDBType)
         {
@@ -1097,8 +1586,6 @@ using System.Text;
                                     parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -1167,13 +1654,14 @@ using System.Text;
                             Results = edit(Lt);
                         }else
                         {
-                            int batchNumber = Lt.Count / MAX_Params_Number;
-                            for(int i=0; i<batchNumber; i++)
+                            int batchSize = Lt.Count / MAX_Params_Number;
+                            for(int i=0; i<batchSize; i++)
                             {
                                 Results += edit(Lt.GetRange(i * MAX_Params_Number, MAX_Params_Number));
                             }
-                            Results += edit(Lt.GetRange(batchNumber * MAX_Params_Number,Lt.Count-batchNumber * MAX_Params_Number));
+                            Results += edit(Lt.GetRange(batchSize * MAX_Params_Number,Lt.Count-batchSize * MAX_Params_Number));
                         }
+                        return Results;
                     }
                     catch(Exception Ex)
                     {
@@ -1241,8 +1729,6 @@ using System.Text;
                                     valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
                                     break;
                                 case "tinyint":
-                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
-                                    break;
                                 case "bool":
                                 case "bit":
                                 case "boolean":
@@ -1307,7 +1793,274 @@ using System.Text;
             }";
             #endregion Edits
 
-            return edit_methods;
+            #region Edits_async
+            if (ClassAttributesType == null || ClassAttributesType.Count <= 1) { return string.Empty; } // not enough attributes to add methods
+
+
+            string edit_methods_async = @"public static async Task<int> EditAsync(" + ClassName + @" T)
+            {
+                try
+                {        
+                    int r = -1;
+                    using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                    {
+                        cnn.Open();
+                        string query = ""UPDATE " + ClassName + @" SET ";
+            attsu = "";
+            if (ClassAttributes.Count > 1)
+            {
+                for (int i = 0; i < ClassAttributes.Count; i++) { if (i != IdIdx) { attsu += ClassAttributes[i] + "=@" + ClassAttributes[i] + ","; } }
+            }
+            if (attsu != "")
+            {
+                attsu = attsu.Substring(0, attsu.Length - 1);
+            }
+            parms1 = "";
+            if (ClassAttributes.Count > 1)
+            {
+                for (int i = 0; i < ClassAttributes.Count; i++)
+                {
+                    if (i != IdIdx)
+                    {
+                        if (ClassAttributesNullable[i].ToLower() == "yes")
+                        {
+                            switch (ClassAttributesType[i].ToLower())
+                            {
+                                case "int":
+                                case "smallint":
+                                case "mediumint":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "bigint":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "real":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "decimal":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "double":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "float":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "datetime2":
+                                case "datetime":
+                                case "date":
+                                case "time":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "tinyint":
+                                case "bool":
+                                case "bit":
+                                case "boolean":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "string":
+                                case "text":
+                                case "tinytext":
+                                case "ntext":
+                                case "longtext":
+                                case "mediumtext":
+                                case "uniqueidentifier":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "char":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "enum":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? (enum" + ClassAttributes[i] + "?)null  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                case "blob":
+                                case "longblob":
+                                case "binary":
+                                case "varbinary":
+                                    parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + " == null ? null  : T." + ClassAttributes[i] + ");";
+                                    break;
+                                default:
+                                    System.Windows.MessageBox.Show("Unsupported DB type, nullable : " + ClassAttributesType[i]);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            parms1 += "\n\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\", T." + ClassAttributes[i] + ");";
+                        }
+                    }
+                }
+            }
+
+            edit_methods_async += attsu + " WHERE " + ClassAttributes[IdIdx] + "=@" + ClassAttributes[IdIdx] + @""";
+                        " + CommandType + " cmd = new " + CommandType + @"(query, cnn);
+                    
+                        cmd.Parameters.AddWithValue(""" + ClassAttributes[IdIdx] + @""", T." + ClassAttributes[IdIdx] + ");" + parms1 +
+                    @"
+                        
+                        r = await cmd.ExecuteNonQueryAsync();
+                    }
+                
+                    return r;
+                }
+                catch(Exception Ex)
+                {
+                    throw Ex;
+                }
+            }
+            public static async Task<int> EditAsync(List<" + ClassName + @"> Lt)
+            {
+                if (Lt != null && Lt.Count > 0)
+                {
+                    try
+                    {
+                        int MAX_Params_Number = " + CfgNameSpace + @".Config.MAX_BDMS_PARAMS_NUM / " + ClassAttributes.Count + @"; // Nb params per query
+                        int Results=0;
+                        if(Lt.Count <= MAX_Params_Number)
+                        {
+                            Results = await editAsync(Lt);
+                        }else
+                        {
+                            int batchSize = Lt.Count / MAX_Params_Number;
+                            for(int i=0; i<batchSize; i++)
+                            {
+                                Results += await editAsync(Lt.GetRange(i * MAX_Params_Number, MAX_Params_Number));
+                            }
+                            Results += await editAsync(Lt.GetRange(batchSize * MAX_Params_Number,Lt.Count-batchSize * MAX_Params_Number));
+                        }
+                        return Results;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+
+                return -1;
+            }
+            private static async Task<int> editAsync(List<" + ClassName + @"> Lt)
+            {
+                if (Lt != null && Lt.Count > 0)
+                {
+                    try
+                    {
+                        int r = -1;
+                        using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                        {
+                            cnn.Open();
+                            string query = """";
+                            " + CommandType + " cmd = new " + CommandType + @"(query, cnn);
+
+                            int i = 0;
+                            foreach (" + ClassName + @" t in Lt)
+                            {
+                                i++;
+                                query += "" UPDATE " + ClassName + " SET \"\n";
+            attsmu = "";
+            valsmu = "";
+            if (ClassAttributes.Count > 1)
+            {
+                for (int i = 0; i < ClassAttributes.Count; i++)
+                {
+                    if (i != IdIdx)
+                    {
+                        attsmu += "\n\t\t\t\t\t\t\t\t\t+ \"" + ClassAttributes[i] + "=@" + ClassAttributes[i] + "\"+ i +\",\"";
+                        if (ClassAttributesNullable[i].ToLower() == "yes")
+                        {
+                            switch (ClassAttributesType[i].ToLower())
+                            {
+                                case "int":
+                                case "smallint":
+                                case "mediumint":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "bigint":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "real":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "decimal":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "double":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "float":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "datetime2":
+                                case "datetime":
+                                case "date":
+                                case "time":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "tinyint":
+                                case "bool":
+                                case "bit":
+                                case "boolean":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "string":
+                                case "text":
+                                case "tinytext":
+                                case "ntext":
+                                case "longtext":
+                                case "mediumtext":
+                                case "uniqueidentifier":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "char":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (object)DBNull.Value  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "enum":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? (enum" + ClassAttributes[i] + "?)null  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                case "blob":
+                                case "longblob":
+                                case "binary":
+                                case "varbinary":
+                                    valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + " == null ? null  : t." + ClassAttributes[i] + ");";
+                                    break;
+                                default:
+                                    System.Windows.MessageBox.Show("Unsupported DB type, nullable : " + ClassAttributesType[i]);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            valsmu += "\n\t\t\t\t\t\t\t\t\tcmd.Parameters.AddWithValue(\"" + ClassAttributes[i] + "\" + i, t." + ClassAttributes[i] + ");";
+                        }
+                    }
+                }
+            }
+
+            edit_methods_async += attsmu.Substring(0, attsmu.Length - 4) + @"+"" WHERE " + ClassAttributes[IdIdx] + "=@" + ClassAttributes[IdIdx] + @""" + i 
+                                     + ""; "";
+
+                                    cmd.Parameters.AddWithValue(""" + ClassAttributes[IdIdx] + @""" + i, t." + ClassAttributes[IdIdx] + @");" +
+        valsmu +
+    @"
+                            }
+
+                            cmd.CommandText = query;
+
+                            r = await cmd.ExecuteNonQueryAsync();
+                        }
+
+                        return r;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+
+                return -1;
+            }";
+            #endregion Edits_async
+
+            return edit_methods + "\n\t\t\t"+ edit_methods_async;
         }
         static string getDeleteMethods(string ClassName, List<string> ClassAttributes, string IdxType, int IdIdx, string ConnectionType, string CommandType, string CfgNameSpace)
         {
@@ -1347,13 +2100,14 @@ using System.Text;
                             Results = delete(LIds);
                         }else
                         {
-                            int batchNumber = LIds.Count / MAX_Params_Number;
-                            for(int i=0; i<batchNumber; i++)
+                            int batchSize = LIds.Count / MAX_Params_Number;
+                            for(int i=0; i<batchSize; i++)
                             {
                                 Results += delete(LIds.GetRange(i * MAX_Params_Number, MAX_Params_Number));
                             }
-                            Results += delete(LIds.GetRange(batchNumber * MAX_Params_Number,LIds.Count-batchNumber * MAX_Params_Number));
+                            Results += delete(LIds.GetRange(batchSize * MAX_Params_Number,LIds.Count-batchSize * MAX_Params_Number));
                         }
+                        return Results;
                     }
                     catch(Exception Ex)
                     {
@@ -1400,12 +2154,102 @@ using System.Text;
             }";
             #endregion Deletes
 
-            return delete_methods;
+            #region Deletes_async
+
+            string delete_methods_aync = @"public static async Task<int> DeleteAsync(" + IdxType + " " + ClassAttributes[IdIdx] + @")
+            {
+                try
+                {
+                    int r = -1;
+                    using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                    {
+                        cnn.Open();
+                        string query = ""DELETE FROM " + ClassName + @" WHERE " + ClassAttributes[IdIdx] + "=@" + ClassAttributes[IdIdx] + @""";
+                        " + CommandType + " cmd = new " + CommandType + @"(query, cnn);
+                        cmd.Parameters.AddWithValue(""" + ClassAttributes[IdIdx] + @""", " + ClassAttributes[IdIdx] + @");
+
+                        r = await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    return r;
+                }
+                catch(Exception Ex)
+                {
+                    throw Ex;
+                }
+            }
+            public static async Task<int> DeleteAsync(List<" + IdxType + @"> LIds)
+            {
+                if(LIds != null && LIds.Count > 0)
+                {
+                    try
+                    {
+                        int MAX_Params_Number = " + CfgNameSpace + @".Config.MAX_BDMS_PARAMS_NUM; 
+                        int Results=0;
+                        if(LIds.Count <= MAX_Params_Number)
+                        {
+                            Results = await deleteAsync(LIds);
+                        }else
+                        {
+                            int batchSize = LIds.Count / MAX_Params_Number;
+                            for(int i=0; i<batchSize; i++)
+                            {
+                                Results += await deleteAsync(LIds.GetRange(i * MAX_Params_Number, MAX_Params_Number));
+                            }
+                            Results += await deleteAsync(LIds.GetRange(batchSize * MAX_Params_Number,LIds.Count-batchSize * MAX_Params_Number));
+                        }
+                        return Results;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+                return -1;
+            }
+            private static async Task<int> deleteAsync(List<" + IdxType + @"> LIds)
+            {
+                if(LIds != null && LIds.Count > 0)
+                {
+                    try
+                    {
+                        int r = -1;
+                        using(" + ConnectionType + " cnn = new " + ConnectionType + "(" + CfgNameSpace + @".Config.GetConnectionString()))
+                        {
+                            cnn.Open();
+                            " + CommandType + " cmd = new " + CommandType + @"();
+                            cmd.Connection = cnn;
+
+                            string queryIds = string.Empty;
+                            for(int i=0; i<LIds.Count; i++)
+                            {
+                                queryIds += ""@Id""+i+"","";
+                                cmd.Parameters.AddWithValue(""Id"" + i, LIds[i]);
+                            }
+                            queryIds = queryIds.TrimEnd(',');
+
+                            string query = ""DELETE FROM " + ClassName + @" WHERE " + ClassAttributes[IdIdx] + @" IN (""+ queryIds +"")"";                    
+                            cmd.CommandText = query;
+                        
+                            r = await cmd.ExecuteNonQueryAsync();
+                        }
+
+                        return r;
+                    }
+                    catch(Exception Ex)
+                    {
+                        throw Ex;
+                    }
+                }
+                return -1;
+            }";
+            #endregion Deletes
+
+            return delete_methods + "\n\t\t\t"+ delete_methods_aync;
         }
         
         
-        static string getConfigFile2(string ProjectName, string connectionString, DatabaseType MyDBType,
-            string MyDBServerIp = "localhost", string MyDBPort = "3306", string MyDBName = "test", string MyDBUsername = "root", string MyDBUserpasswd = "NewRam5Sab")
+        static string getConfigFile2(string ProjectName, string connectionString, DatabaseType MyDBType, string MyDBServerIp = "localhost", string MyDBPort = "3306", string MyDBName = "test", string MyDBUsername = "root", string MyDBUserpasswd = "NewRam5Sab")
         {
             string ConnectionValue;
 
@@ -1442,7 +2286,8 @@ using System.Text;";
         
         public static string GetConnectionString()
         {
-            return @""" + connectionString + @""";
+            // Add appSettings entry key=""ConnectionString"", value=""" + connectionString + @"""
+            return System.Configuration.ConfigurationManager.AppSettings[""ConnectionString""].ToString();
         }
 
         public static bool GetDebugMode()
@@ -1500,7 +2345,8 @@ using System.Text;
         
         public static string GetConnectionString()
         {
-            return @""" + projectConnectionString + @""";
+            // Add appSettings entry key=""ConnectionString"", value=""" + projectConnectionString + @"""
+            return System.Configuration.ConfigurationManager.AppSettings[""ConnectionString""].ToString();
         }
 
         public static bool GetDebugMode()

@@ -85,11 +85,9 @@ namespace modelly
                     {
                         lblServerName.Content = "Server name";
                         ckxTustedConnection.IsChecked = true;
-                        ckxIsDotNetCore.IsChecked = false;
                         tbxUserLogin.IsEnabled = false;
                         tbxUserPassword.IsEnabled = false;
                         ckxTustedConnection.Visibility = System.Windows.Visibility.Visible;
-                        ckxIsDotNetCore.Visibility = System.Windows.Visibility.Visible;
                         tbxServerPort.Visibility = System.Windows.Visibility.Hidden;
                         lblServerPort.Visibility = System.Windows.Visibility.Hidden;
                         tbxCnxString.Text = Environment.MachineName;
@@ -101,9 +99,7 @@ namespace modelly
                         ckxTustedConnection.IsChecked = false;
                         tbxUserLogin.IsEnabled = true;
                         tbxUserPassword.IsEnabled = true;
-                        ckxIsDotNetCore.IsChecked = false;
                         ckxTustedConnection.Visibility = System.Windows.Visibility.Hidden;
-                        ckxIsDotNetCore.Visibility = System.Windows.Visibility.Hidden;
                         serverPort = 3306;
                         tbxServerPort.Visibility = System.Windows.Visibility.Visible;
                         lblServerPort.Visibility = System.Windows.Visibility.Visible;
@@ -116,9 +112,7 @@ namespace modelly
                         ckxTustedConnection.IsChecked = false;
                         tbxUserLogin.IsEnabled = true;
                         tbxUserPassword.IsEnabled = true;
-                        ckxIsDotNetCore.IsChecked = false;
                         ckxTustedConnection.Visibility = System.Windows.Visibility.Hidden;
-                        ckxIsDotNetCore.Visibility = System.Windows.Visibility.Hidden;
                         serverPort = 5432;
                         tbxServerPort.Visibility = System.Windows.Visibility.Visible;
                         lblServerPort.Visibility = System.Windows.Visibility.Visible;
@@ -139,7 +133,7 @@ namespace modelly
             uLogin = tbxUserLogin.Text;
             uPassword = tbxUserPassword.Password;
             serverName = tbxCnxString.Text;
-            IsDotNetCore = (bool)ckxIsDotNetCore.IsChecked;
+            IsDotNetCore = false;
             int sType = cbxServerType.SelectedIndex;
             if (sType > -1)
             {
@@ -187,6 +181,7 @@ namespace modelly
                 catch (Exception ex)
                 {
                     var msg = new MessageDialog();
+                    msg.Owner = this;
                     msg.LblMessage.Text = "Cannot connect to server!\nPlease, make sure that connection credentials are correct and try again";
                     msg.TbkStackTrace.Text = ex.Message + Environment.NewLine + ex.StackTrace;
                     msg.ShowDialog();
@@ -280,6 +275,14 @@ namespace modelly
         {
             serverType = cbxServerType.SelectedIndex;
             Set_Visibility(serverType);
+        }
+
+        private void tbx_KeyUp(object sender, KeyEventArgs e)
+        {
+            if(e.Key == Key.Enter)
+            {
+                Connect_Click(sender, e);
+            }
         }
     }
 }

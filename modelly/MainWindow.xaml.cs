@@ -184,6 +184,7 @@ namespace modelly
             catch (Exception ex)
             {
                 var msg = new MessageDialog();
+                msg.Owner = this;
                 msg.LblMessage.Text = "Cannot connect to database.\nPlease check provided information and retry again";
                 msg.TbkStackTrace.Text = ex.Message + Environment.NewLine + ex.StackTrace;
                 msg.ShowDialog();
@@ -407,6 +408,7 @@ namespace modelly
             catch (Exception ex)
             {
                 var msg = new MessageDialog();
+                msg.Owner = this;
                 msg.LblMessage.Text = "Cannot retrieve database objects.\nPlease check credentials and retry again";
                 msg.TbkStackTrace.Text = ex.Message + Environment.NewLine + ex.StackTrace;
                 msg.ShowDialog();
@@ -458,6 +460,7 @@ namespace modelly
             catch (Exception ex)
             {
                 var msg = new MessageDialog();
+                msg.Owner = this;
                 msg.LblMessage.Text = "Cannot generate files.\nPlease check provided information and retry again";
                 msg.TbkStackTrace.Text = ex.Message + Environment.NewLine + ex.StackTrace;
                 msg.ShowDialog();
@@ -479,6 +482,7 @@ namespace modelly
             {
 
                 var msg = new MessageDialog();
+                msg.Owner = this;
                 msg.LblMessage.Text = "Cannot select all tables.\nPlease retry again";
                 msg.TbkStackTrace.Text = ex.Message + Environment.NewLine + ex.StackTrace;
                 msg.ShowDialog();

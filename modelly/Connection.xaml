@@ -37,6 +37,7 @@
             </StackPanel>
             <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
                 <TextBox Name="tbxCnxString" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="1" Width="200" FontFamily="Consolas" FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10,0,10,9" TextAlignment="Left" Padding="3" TextWrapping="NoWrap" KeyboardNavigation.TabIndex="1" KeyUp="tbx_KeyUp"></TextBox>
+
                 <Label Name="lblServerPort" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">port:</Label>
                 <TextBox Name="tbxServerPort" Width="40" FontFamily="Consolas" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10 0" TextAlignment="Left" Padding="3" TextWrapping="NoWrap" KeyboardNavigation.TabIndex="5"></TextBox>
             </StackPanel>
